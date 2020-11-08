@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html ng-app="app">
+
+<head>
+  <meta charset="utf-8">
+  <title></title>
+</head>
+
+<body>
+  <div id="app">
+    <textarea type="text" v-model="code" placeholder="code" cols="80" rows="25"></textarea>
+    <div>
+      <!--
+      <input type="button" value="parse" v-on:click="parse(code)"></input>
+      <input type="button" value="step" v-on:click="step(interpreter)"></input>
+      -->
+      <input type="button" value="run" v-on:click="run(code)"></input>
+    </div>
+    <div>{{ result }}</div>
+    <div>{{ error }}</div>
+  </div>
+
+
+  <script src="https://cdn.jsdelivr.net/npm/vue@2.6.12"></script>
+  <script src="hogelang.js"></script>
+  <script>
+    const app = new Vue({
+      el: '#app',
+      data: {
+        code: `({y} {
+    ({fact} {
+        fact(10);
+    })(y(({recurse} {
+        ({n} {
+            if (<=(n 1); {
+                1
+            } {
+                *(n recurse(-(n 1);););
+            });
+        })
+    })););
+})(({f} {
+    ({p} {
+        ({n} { f(p(p););(n); })
+    })(({p} {
+        ({n} { f(p(p););(n); })
+    }));
+}));
+`,
+        interpreter: null,
+        result: null,
+        error: null
+      },
+      methods: {
+        run: function(code) {
+          try {
+            this.result = (new HogeLang.Interpreter(code)).run();
+            this.error = null;
+          } catch(e) {
+            this.error = e;
+          }
+        },
+        parse: function(code) {
+          try {
+            this.interpreter = new HogeLang.Interpreter(code);
+            this.error = null;
+          } catch(e) {
+            this.error = e;
+          }
+        },
+        step: function(interpreter) {
+          if (interpreter != null && !interpreter.isFinished()) interpreter.next();
+        }
+      }
+    });
+  </script>
+
+</body>
+</html>
