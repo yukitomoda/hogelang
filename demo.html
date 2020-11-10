@@ -1,7 +1,7 @@
-<!DOCTYPE html>
 <html ng-app="app">
 
 <head>
+  <link rel="stylesheet" href="demo.css" type="text/css">
   <meta charset="utf-8">
   <title></title>
 </head>
@@ -10,23 +10,197 @@
   <div id="app">
     <textarea type="text" v-model="code" placeholder="code" cols="80" rows="25"></textarea>
     <div>
-      <!--
       <input type="button" value="parse" v-on:click="parse(code)"></input>
+      <input type="number" v-model="stepCount"></input>
       <input type="button" value="step" v-on:click="step(interpreter)"></input>
-      -->
       <input type="button" value="run" v-on:click="run(code)"></input>
     </div>
     <div>{{ result }}</div>
     <div>{{ error }}</div>
+    <div v-if="interpreter" class="inspector-area">
+      <div class="env-view-area">
+        <env-view v-if="selectedEnv" :env="selectedEnv"></env-view>
+        <env-view v-else-if="interpreter.env" :env="interpreter.env"></env-view>
+      </div>
+      <div class="env-stack-area">
+        <env-stack-view v-if="interpreter.envStack" :env-stack="interpreter.envStack" :on-selected-env-changed="onSelectedEnvChanged"></env-stack-view>
+      </div>
+    </div>
   </div>
 
 
   <script src="https://cdn.jsdelivr.net/npm/vue@2.6.12"></script>
   <script src="hogelang.js"></script>
   <script>
+
+    const valueViewComponent = {
+      props: [
+        'value'
+      ],
+      template: `
+      <span>
+        <span v-if="value.type == 'symbol'" class="command command-symbol">{{value.symbol}}</span>
+        <span v-else-if="value.type == 'rawValue'" class="command command-raw-value">{{value.value}}</span>
+        <span v-else-if="value.type == 'internalCode'" class="command command-internal-code">INTERNAL-CODE</span>
+        <span v-else-if="value instanceof HogeLang.List" class="list">(list)</span>
+        <span v-else-if="value.type" class="command other-commands">{{value.type}}</span>
+        <span v-else class="raw-value">{{value}}</span>
+      </span>
+      `
+    };
+
+    const codeViewComponent = {
+      props: [
+        'code',
+        'cursor'
+      ],
+      template: `
+      <div>
+        <value-view v-for="i in code.getLength()" :value="code.get(i-1)" :class="{ 'next-command': i-1 == cursor }"></value-view>
+      </div>
+      `,
+      components: {
+        'valueView': valueViewComponent
+      },
+    };
+
+    const listViewComponent = {
+      name: 'listView',
+      data: function() {
+        return {
+          expand: false 
+        };
+      },
+      props: [
+        'list'
+      ],
+      template: `
+      <template>
+        <div v-if="expand">
+          <input type="button" value="+" v-on:click.stop="toggleExpand()"></input>
+          <div v-for="i in list.getLength()" class="list-view-expand">
+            <list-view v-if="list.get(i-1) instanceof HogeLang.List" :list="list.get(i-1)"></list-view>
+            <value-view v-else :value="list.get(i-1)"></value-view>
+          </div>
+        </div>
+        <div v-else>
+          <input type="button" value="+" v-on:click.stop="toggleExpand()"></input>
+          <value-view v-for="i in list.getLength()" :value="list.get(i-1)"></value-view>
+        </div>
+      </template>
+      `,
+      components: {
+        'valueView': valueViewComponent
+      },
+      methods: {
+        toggleExpand: function() {
+          this.expand = !this.expand;
+        }
+      }
+    };
+
+    const namespaceViewComponent = {
+      props: [
+        'namespace'
+      ],
+      template: `
+      <div>
+        <div v-for="(value, key) in namespace" class="namespace-entry">
+          <span class="namespace-view-key">{{key}} :</span>
+          <list-view v-if="value instanceof HogeLang.List" :list="value" class="namespace-view-value"></list-view>
+          <value-view v-else :value="value" class="namespace-view-value"></value-view>
+        </div>
+      </div>
+      `,
+      components: {
+        'valueView': valueViewComponent,
+        'listView': listViewComponent
+      },
+    };
+
+    const envViewComponent = {
+      props: [
+        'env'
+      ],
+      template: `
+      <div>
+        <div>
+          <h2>namespace</h2>
+          <namespace-view :namespace="env.namespace"></namespace-view>
+        </div>
+        <div>
+          <h2>code</h2>
+          <code-view v-if="env.code" :code="env.code" :cursor="env.cursor"></code-view>
+        </div>
+        <div>
+          <h2>current list</h2>
+          <list-view v-if="env.list" :list="env.list"></list-view>
+        </div>
+        <div>
+          <h2>stack</h2>
+          <div v-for="i in env.listStack.length" class="stack-view">
+            <list-view :list="env.listStack[env.listStack.length - i]"></list-view>
+          </div>
+        </div>
+      </div>
+      `,
+      components: {
+        'namespaceView': namespaceViewComponent,
+        'codeView': codeViewComponent,
+        'listView': listViewComponent
+      },
+    };
+
+    const envOverviewComponent = {
+      props: [
+        'env',
+      ],
+      template: `
+      <div>
+        <namespace-view :namespace="env.namespace"></namespace-view>
+      </div>
+      `,
+      components: {
+        'namespaceView': namespaceViewComponent
+      },
+    };
+
+    const envStackViewComponent = {
+      data: () => ({
+        selectedEnv: null
+      }),
+      props: [
+        'envStack',
+        'onSelectedEnvChanged'
+      ],
+      template: `
+      <div>
+        <div v-for="env in envStack" v-on:click="toggle(env)">
+          <env-overview
+            :env="env"
+            class="env-stack-entry"
+            :class="{ 'selected-env': env === selectedEnv }"></env-overview>
+        </div>
+      </div>
+      `,
+      methods: {
+        toggle: function(env) {
+          if (env !== this.selectedEnv) {
+            this.selectedEnv = env;
+          } else {
+            this.selectedEnv = null;
+          }
+          if (this.onSelectedEnvChanged) this.onSelectedEnvChanged(this.selectedEnv);
+        }
+      },
+      components: {
+        'envOverview': envOverviewComponent 
+      },
+    };
+
     const app = new Vue({
       el: '#app',
-      data: {
+      data: () => ({
         code: `({y} {
     ({fact} {
         fact(10);
@@ -49,8 +223,10 @@
 `,
         interpreter: null,
         result: null,
-        error: null
-      },
+        error: null,
+        stepCount: 1,
+        selectedEnv: null
+      }),
       methods: {
         run: function(code) {
           try {
@@ -63,14 +239,26 @@
         parse: function(code) {
           try {
             this.interpreter = new HogeLang.Interpreter(code);
+            this.selectedEnv = null;
             this.error = null;
           } catch(e) {
             this.error = e;
           }
         },
         step: function(interpreter) {
-          if (interpreter != null && !interpreter.isFinished()) interpreter.next();
+          if (interpreter == null) return;
+          for (let i = 0; i < this.stepCount && !interpreter.isFinished(); i++) {
+            interpreter.next();
+          }
+        },
+        onSelectedEnvChanged: function(env) {
+          console.log(env);
+          this.selectedEnv = env;
         }
+      },
+      components: {
+        'EnvView': envViewComponent,
+        'EnvStackView': envStackViewComponent
       }
     });
   </script>
