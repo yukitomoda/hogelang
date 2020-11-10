@@ -299,6 +299,8 @@ const HogeLang = (function () {
   }
 
   return {
-    Interpreter: Interpreter
+    Interpreter: Interpreter,
+    Env: Env,
+    List: List
   };
 })();
