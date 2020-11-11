@@ -1,6 +1,7 @@
 <html ng-app="app">
 
 <head>
+  <link rel="stylesheet" href="https://pro.fontawesome.com/releases/v5.10.0/css/all.css" integrity="sha384-AYmEC3Yw5cVb3ZcuHtOA93w35dYTsvhLPVnYs9eStHfGJvOvKxVfELGroGkvsg+p" crossorigin="anonymous"/>
   <link rel="stylesheet" href="demo.css" type="text/css">
   <meta charset="utf-8">
   <title></title>
@@ -8,8 +9,8 @@
 
 <body>
   <div id="app">
-    <textarea type="text" v-model="code" placeholder="code" cols="80" rows="25"></textarea>
-    <div>
+    <textarea type="text" v-model="code" class="textarea-code" placeholder="code" cols="80" rows="25"></textarea>
+    <div class="input-group">
       <input type="button" value="parse" v-on:click="parse(code)"></input>
       <input type="number" v-model="stepCount"></input>
       <input type="button" value="step" v-on:click="step(interpreter)"></input>
@@ -77,14 +78,14 @@
       template: `
       <template>
         <div v-if="expand">
-          <input type="button" value="+" v-on:click.stop="toggleExpand()"></input>
+          <i class="fas fa-caret-square-down fa-button-collapse" v-on:click.stop="toggleExpand()"></i>
           <div v-for="i in list.getLength()" class="list-view-expand">
             <list-view v-if="list.get(i-1) instanceof HogeLang.List" :list="list.get(i-1)"></list-view>
             <value-view v-else :value="list.get(i-1)"></value-view>
           </div>
         </div>
         <div v-else>
-          <input type="button" value="+" v-on:click.stop="toggleExpand()"></input>
+          <i class="fas fa-caret-square-right fa-button-expand" v-on:click.stop="toggleExpand()"></i>
           <value-view v-for="i in list.getLength()" :value="list.get(i-1)"></value-view>
         </div>
       </template>

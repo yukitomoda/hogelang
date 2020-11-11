@@ -2,6 +2,10 @@
     display: flex;
 }
 
+.input-group {
+    margin: 0.4em 0.2em;
+}
+
 .env-view-area {
     flex-grow: 1;
 }
@@ -48,6 +52,7 @@
 
 .list {
     border: 1px dashed black;
+    margin: 2px 0.2em;
 }
 
 .list-view-expand {
@@ -57,4 +62,23 @@
 
 .command-internal-code {
     background-color: lightblue;
+}
+
+.textarea-code {
+    font-family: monospace;
+}
+
+input[type="button"] {
+    font-size: 20px;
+}
+
+input[type="number"] {
+    font-size: 20px;
+}
+
+.fa-button-expand,
+.fa-button-collapse {
+    vertical-align: middle;
+    font-size: 24px;
+    color: darkcyan;
 }
