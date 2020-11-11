@@ -198,6 +198,9 @@ const HogeLang = (function () {
           console.debug('execute internal code', command.func, result);
           break;
         }
+        default:
+          this.env.pushToList(command);
+          break;
       }
     } else {
       switch (command.type) {
