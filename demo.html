@@ -13,8 +13,9 @@
     <div class="input-group">
       <input type="button" value="parse" v-on:click="parse(code)"></input>
       <input type="number" v-model="stepCount"></input>
-      <input type="button" value="step" v-on:click="step(interpreter)"></input>
-      <input type="button" value="run" v-on:click="run(code)"></input>
+      <input type="button" value="step" :disabled="!interpreter" v-on:click="step(interpreter)"></input>
+      <input type="button" :disabled="!interpreter || codeRunningIntervalId != null" value="start" v-on:click="start(interpreter)"></input>
+      <input type="button" :disabled="codeRunningIntervalId == null" value="stop" v-on:click="stop()"></input>
     </div>
     <div>{{ result }}</div>
     <div>{{ error }}</div>
@@ -226,16 +227,31 @@
         result: null,
         error: null,
         stepCount: 1,
-        selectedEnv: null
+        selectedEnv: null,
+        codeRunningIntervalId: null
       }),
       methods: {
-        run: function(code) {
-          try {
-            this.result = (new HogeLang.Interpreter(code)).run();
-            this.error = null;
-          } catch(e) {
-            this.error = e;
-          }
+        start: function(interpreter) {
+          if (interpreter == null) return;
+          if (this.codeRunningIntervalId != null) return;
+
+          this.codeRunningIntervalId = setInterval(() => {
+            try {
+              for (let i = 0; i < this.stepCount && !interpreter.isFinished(); i++) {
+                interpreter.next();
+              }
+              this.error = null;
+            } catch (e) {
+              this.error = e;
+              this.stop();
+            }
+            if (interpreter.isFinished()) this.stop();
+          }, 10);
+        },
+        stop: function(interpreter) {
+          if (this.codeRunningIntervalId == null) return;
+          clearInterval(this.codeRunningIntervalId);
+          this.codeRunningIntervalId = null;
         },
         parse: function(code) {
           try {
@@ -248,8 +264,13 @@
         },
         step: function(interpreter) {
           if (interpreter == null) return;
-          for (let i = 0; i < this.stepCount && !interpreter.isFinished(); i++) {
-            interpreter.next();
+          try {
+            for (let i = 0; i < this.stepCount && !interpreter.isFinished(); i++) {
+              interpreter.next();
+            }
+            this.error = null;
+          } catch(e) {
+            this.error = e;
           }
         },
         onSelectedEnvChanged: function(env) {
