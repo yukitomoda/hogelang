@@ -21,6 +21,11 @@ const HogeLang = (function () {
     return this.arr.length;
   };
 
+  List.prototype.concat = function(other) {
+    const arr = this.arr.concat(other.arr);
+    return new List(arr, this.env);
+  };
+
 
   function Env(namespace, code) {
     this.namespace = namespace;
@@ -102,13 +107,15 @@ const HogeLang = (function () {
     '-': embeddedFunction(['lhs', 'rhs'], (env) => env.getValue('lhs') - env.getValue('rhs')),
     '*': embeddedFunction(['lhs', 'rhs'], (env) => env.getValue('lhs') * env.getValue('rhs')),
     '/': embeddedFunction(['lhs', 'rhs'], (env) => env.getValue('lhs') / env.getValue('rhs')),
-    '%': embeddedFunction(['lhs', 'rhs'], (env) => env.getValue('lhs') % env.getValue('rhs')),
+    'mod': embeddedFunction(['lhs', 'rhs'], (env) => env.getValue('lhs') % env.getValue('rhs')),
+    'floor': embeddedFunction(['value'], (env) => Math.floor(env.getValue('value'))),
     '=': embeddedFunction(['lhs', 'rhs'], (env) => env.getValue('lhs') == env.getValue('rhs')),
     '!=': embeddedFunction(['lhs', 'rhs'], (env) => env.getValue('lhs') != env.getValue('rhs')),
     '<': embeddedFunction(['lhs', 'rhs'], (env) => env.getValue('lhs') < env.getValue('rhs')),
     '>': embeddedFunction(['lhs', 'rhs'], (env) => env.getValue('lhs') > env.getValue('rhs')),
     '<=': embeddedFunction(['lhs', 'rhs'], (env) => env.getValue('lhs') <= env.getValue('rhs')),
     '>=': embeddedFunction(['lhs', 'rhs'], (env) => env.getValue('lhs') >= env.getValue('rhs')),
+    'not': embeddedFunction(['value'], (env) => !env.getValue('value')),
     'or': embeddedFunction(['lhs', 'rhs'], (env) => env.getValue('lhs') || env.getValue('rhs')),
     'and': embeddedFunction(['lhs', 'rhs'], (env) => env.getValue('lhs') && env.getValue('rhs')),
     'first': embeddedFunction(['list'], (env) => env.getValue('list').get(0)),
@@ -116,12 +123,16 @@ const HogeLang = (function () {
       const list = env.getValue('list');
       return new List(list.arr.slice(1), list.env);
     }),
-    'if': embeddedControlCommand(['cond', 'true', 'false'], (env) => {
+    'concat': embeddedFunction(['lhs', 'rhs'], (env) => env.getValue('lhs').concat(env.getValue('rhs'))),
+    'length': embeddedFunction(['list'], (env) => env.getValue('list').getLength()),
+    'is-null': embeddedFunction(['value'], (env) => env.getValue('value') == null),
+    'is-list': embeddedFunction(['value'], (env) => env.getValue('value') instanceof List),
+    'if': embeddedControlCommand(['cond', 'if-true', 'if-false'], (env) => {
       if (env.getValue('cond')) {
-        const code = env.getValue('true');
+        const code = env.getValue('if-true');
         return new Env({}, code);
       } else {
-        const code = env.getValue('false');
+        const code = env.getValue('if-false');
         return new Env({}, code);
       }
     })
