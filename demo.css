@@ -60,6 +60,10 @@
     border-left: 5px solid lightgreen;
 }
 
+.code-view-selected-command {
+    background-color: lightsalmon;
+}
+
 .command-internal-code {
     background-color: lightblue;
 }

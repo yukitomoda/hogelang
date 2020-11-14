@@ -54,13 +54,37 @@
     const codeViewComponent = {
       props: [
         'code',
-        'cursor'
+        'cursor',
+        'onCommandSelected'
       ],
+      data: () => ({
+        selectedIndex: null
+      }),
+      watch: {
+        'code': function() {
+          this.selectedIndex = null;
+          if (this.onCommandSelected) this.onCommandSelected(null);
+        }
+      },
       template: `
       <div>
-        <value-view v-for="i in code.getLength()" :value="code.get(i-1)" :class="{ 'next-command': i-1 == cursor }"></value-view>
+        <span v-for="i in code.getLength()" v-on:click="toggle(i-1)" :class="{ 'code-view-selected-command' : i-1 == selectedIndex}">
+          <i v-if="i-1 === selectedIndex" class="fas fa-exclamation-circle"></i>
+          <value-view :value="code.get(i-1)" :class="{ 'next-command': i-1 == cursor }"></value-view>
+        </span>
       </div>
       `,
+      methods: {
+        toggle: function(index) {
+          if (this.selectedIndex !== index) {
+            this.selectedIndex = index;
+            if (this.onCommandSelected) this.onCommandSelected(this.code.get(index));
+          } else {
+            this.selectedIndex = null;
+            if (this.onCommandSelected) this.onCommandSelected(null);
+          }
+        }
+      },
       components: {
         'valueView': valueViewComponent
       },
@@ -76,6 +100,11 @@
       props: [
         'list'
       ],
+      watch: {
+        'list': function() {
+          this.expand = false;
+        }
+      },
       template: `
       <template>
         <div v-if="expand">
@@ -124,6 +153,9 @@
       props: [
         'env'
       ],
+      data: () => ({
+        selectedValue: null
+      }),
       template: `
       <div>
         <div>
@@ -132,7 +164,12 @@
         </div>
         <div>
           <h2>code</h2>
-          <code-view v-if="env.code" :code="env.code" :cursor="env.cursor"></code-view>
+          <code-view v-if="env.code" :code="env.code" :cursor="env.cursor" :on-command-selected="onCommandSelected"></code-view>
+          <div v-if="selectedValue != null">
+            <h3>selected value</h3>
+            <list-view v-if="selectedValue instanceof HogeLang.List" :list="selectedValue"></list-view>
+            <value-view v-else :value="selectedValue"></value-view>
+          </div>
         </div>
         <div>
           <h2>current list</h2>
@@ -146,10 +183,24 @@
         </div>
       </div>
       `,
+      methods: {
+        onCommandSelected: function(value) {
+          if (value != null) {
+            if (value.type == 'symbol') {
+              this.selectedValue = this.env.getValue(value.symbol);
+            } else {
+              this.selectedValue = value;
+            }
+          } else {
+            this.selectedValue = null;
+          }
+        }
+      },
       components: {
         'namespaceView': namespaceViewComponent,
         'codeView': codeViewComponent,
-        'listView': listViewComponent
+        'listView': listViewComponent,
+        'valueView': valueViewComponent
       },
     };
 
@@ -274,7 +325,6 @@
           }
         },
         onSelectedEnvChanged: function(env) {
-          console.log(env);
           this.selectedEnv = env;
         }
       },
