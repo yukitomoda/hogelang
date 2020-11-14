@@ -299,7 +299,7 @@ const HogeLang = (function () {
       } else {
         const begin = i;
         let end = i + 1;
-        while (end < code.length && /[^#(){}\s]/.test(code[end])) {
+        while (end < code.length && /[^#(){};\s]/.test(code[end])) {
           end++;
         }
         i = end - 1;
